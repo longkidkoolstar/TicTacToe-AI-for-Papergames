@@ -1,19 +1,51 @@
 // ==UserScript==
 // @name         Tic Tac Toe AI for papergames
 // @namespace    https://github.com/longkidkoolstar
-// @version      0.1
+// @version      0.2
 // @description  Adds an AI player to Tic Tac Toe on papergames.io
 // @author       longkidkoolstar
+// @icon         https://th.bing.com/th/id/R.3502d1ca849b062acb85cf68a8c48bcd?rik=LxTvt1UpLC2y2g&pid=ImgRaw&r=0
 // @match        https://papergames.io/*
+// @license      none 
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
-    var depth = 5; // Set the desired depth value
+    
+var depth = localStorage.getItem('depth');
+
+// Frozen on Zero screen Bug Fix
+function checkElementAndClick() {
+    // Find the element with the <span>0</span>
+    var element = document.querySelector('app-count-down span');
+  
+    if (element) {
+      // Check if the inner text of the span is '0'
+      if (element.innerText === '0') {
+        // Wait for 5 seconds (5000 milliseconds)
+        setTimeout(function () {
+          // Check if the inner text is still '0' after 5 seconds
+          if (element.innerText === '0') {
+            debug.log("Detected Now Closing");
+            var svgElement = document.querySelector('svg[data-icon="xmark"]');
+            if (svgElement) {
+              svgElement.click();
+            }
+          }
+        }, 5000); // 5 seconds
+      }
+    }
+  }
+  
+  // Periodically check for the element and trigger the click if needed
+  setInterval(checkElementAndClick, 1000); // Check every second (adjust the interval as needed)
+
+      
 
 
-    function getBoardState() {
+
+function getBoardState() {
         var boardState = [];
         var rows = document.querySelectorAll("#tic-tac-toe table tr");
         rows.forEach(function(row) {
@@ -85,67 +117,250 @@ function logout() {
     createLogoutButton();
 //------------------------------------------------
 
-function toggleButtonClick() {
-    var leaveRoomButton = document.querySelector("button.btn-light.ng-tns-c189-7");
-    var playOnlineButton = document.querySelector("button.btn-secondary.flex-grow-1");
+(function() {
+    'use strict';
 
-    if (leaveRoomButton) {
-        leaveRoomButton.click();
+    // Create a container for the dropdown
+    var dropdownContainer = document.createElement('div');
+    dropdownContainer.style.position = 'fixed';
+    dropdownContainer.style.bottom = '20px';
+    dropdownContainer.style.left = '20px';
+    dropdownContainer.style.zIndex = '9998';
+    dropdownContainer.style.backgroundColor = '#1b2837';
+    dropdownContainer.style.border = '1px solid #18bc9c';
+    dropdownContainer.style.borderRadius = '5px';
+
+    // Create a button to toggle the dropdown
+    var toggleButton = document.createElement('button');
+    toggleButton.textContent = 'Settings';
+    toggleButton.style.padding = '5px 10px';
+    toggleButton.style.border = 'none';
+    toggleButton.classList.add('btn', 'btn-secondary', 'mb-2', 'ng-star-inserted');
+    toggleButton.style.backgroundColor = '#007bff';
+    toggleButton.style.color = 'white';
+    toggleButton.style.borderRadius = '5px';
+    toggleButton.addEventListener('mouseover', function() {
+        toggleButton.style.opacity = '0.5'; // Dim the button when hovered over
+    });
+    toggleButton.addEventListener('mouseout', function() {
+        toggleButton.style.opacity = '1'; // Restore the button opacity when mouse leaves
+    });
+
+    // Create the dropdown content
+    var dropdownContent = document.createElement('div');
+    dropdownContent.style.display = 'none';
+    dropdownContent.style.padding = '8px';
+    
+
+    // Create the "Auto Queue" tab
+    var autoQueueTab = document.createElement('div');
+    autoQueueTab.textContent = 'Auto Queue';
+    autoQueueTab.style.padding = '5px 0';
+    autoQueueTab.style.cursor = 'pointer';
+
+    // Create the "Depth Slider" tab
+    var depthSliderTab = document.createElement('div');
+    depthSliderTab.textContent = 'Depth Slider';
+    depthSliderTab.style.padding = '5px 0';
+    depthSliderTab.style.cursor = 'pointer';
+
+    // Create the settings for "Auto Queue"
+    var autoQueueSettings = document.createElement('div');
+    autoQueueSettings.textContent = 'Auto Queue Settings';
+    autoQueueSettings.style.display = 'none'; // Initially hidden
+    autoQueueSettings.style.padding = '10px';
+
+    // Create the settings for "Depth Slider"
+    var depthSliderSettings = document.createElement('div');
+    depthSliderSettings.style.display = 'none'; // Initially displayed for this tab
+    depthSliderSettings.style.padding = '10px';
+
+    // Create the depth slider
+    var depthSlider = document.createElement('input');
+    depthSlider.type = 'range';
+    depthSlider.min = '1';
+    depthSlider.max = '100';
+    var storedDepth = localStorage.getItem('depth');
+    depthSlider.value = storedDepth !== null ? storedDepth : '20';
+
+    // Add event listener to the depth slider
+    depthSlider.addEventListener('input', function(event) {
+        var depth = Math.round(depthSlider.value);
+        localStorage.setItem('depth', depth.toString());
+
+        // Show the popup with the current depth value
+        var popup = document.querySelector('.depth-popup'); // Use an existing popup or create a new one
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.classList.add('depth-popup');
+            popup.style.position = 'fixed';
+            popup.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            popup.style.color = 'white';
+            popup.style.padding = '5px 10px';
+            popup.style.borderRadius = '5px';
+            popup.style.zIndex = '9999';
+            popup.style.display = 'none';
+            document.body.appendChild(popup);
+        }
+
+        popup.innerText = 'Depth: ' + depth;
+        popup.style.display = 'block';
+
+        // Calculate slider position and adjust popup position
+        var sliderRect = depthSlider.getBoundingClientRect();
+        var popupX = sliderRect.left + ((depthSlider.value - depthSlider.min) / (depthSlider.max - depthSlider.min)) * sliderRect.width - popup.clientWidth / 2;
+        var popupY = sliderRect.top - popup.clientHeight - 10;
+
+        popup.style.left = popupX + 'px';
+        popup.style.top = popupY + 'px';
+
+        // Start a timer to hide the popup after a certain duration (e.g., 2 seconds)
+        setTimeout(function() {
+            popup.style.display = 'none';
+        }, 2000);
+    });
+
+    // Append the depth slider to the "Depth Slider" settings
+    depthSliderSettings.appendChild(depthSlider);
+    
+
+    // Create the settings for "Auto Queue"
+    var autoQueueSettings = document.createElement('div');
+    autoQueueSettings.style.padding = '10px';
+
+    // Create the "Auto Queue" toggle button
+    var autoQueueToggleButton = document.createElement('button');
+    autoQueueToggleButton.textContent = 'Auto Queue Off';
+    autoQueueToggleButton.style.marginTop = '10px';
+    autoQueueToggleButton.style.display = 'none';
+    autoQueueToggleButton.classList.add('btn', 'btn-secondary', 'mb-2', 'ng-star-inserted');
+    autoQueueToggleButton.style.backgroundColor = 'red'; // Initially red for "Off"
+    autoQueueToggleButton.style.color = 'white';
+    autoQueueToggleButton.addEventListener('click', toggleAutoQueue);
+    
+    autoQueueSettings.appendChild(autoQueueToggleButton);
+    
+    var isAutoQueueOn = false; // Track the state
+    
+    function toggleAutoQueue() {
+        // Toggle the state
+        isAutoQueueOn = !isAutoQueueOn;
+        localStorage.setItem('isToggled', isAutoQueueOn);
+    
+        // Update the button text and style based on the state
+        autoQueueToggleButton.textContent = isAutoQueueOn ? 'Auto Queue On' : 'Auto Queue Off';
+        autoQueueToggleButton.style.backgroundColor = isAutoQueueOn ? 'green' : 'red';
+    }
+    
+    function clickLeaveRoomButton() {
+        var leaveRoomButton = document.querySelector("button.btn-light.ng-tns-c189-7");
+        if (leaveRoomButton) {
+            leaveRoomButton.click();
+        }
+    }
+    
+function numberChangeTechniqueClickLeaveRoomButton(){}
+
+    function clickPlayOnlineButton() {
+        var playOnlineButton = document.querySelector("button.btn-secondary.flex-grow-1");
+        if (playOnlineButton) {
+            playOnlineButton.click();
+        }
+    }
+    
+    // Periodically check for buttons when the toggle is on
+    function checkButtonsPeriodically() {
+        if (isAutoQueueOn) {
+            clickLeaveRoomButton();
+            clickPlayOnlineButton();
+        }
     }
 
-    if (playOnlineButton) {
-        playOnlineButton.click();
-    }
 
-    // Toggle the state
-    var isToggled = localStorage.getItem('isToggled');
-    isToggled = isToggled === 'true' ? 'false' : 'true';
-    localStorage.setItem('isToggled', isToggled);
 
-    // Update the button text and style based on the state
-    toggleButton.textContent = isToggled === 'true' ? 'On' : 'Off';
-    toggleButton.style.backgroundColor = isToggled === 'true' ? 'green' : 'red';
+    
+    // Set up periodic checking
+    setInterval(checkButtonsPeriodically, 1000);
 
-    if (isToggled === 'true') {
-        setInterval(function() {
-            var leaveRoomButton = document.querySelector("button.btn-light.ng-tns-c189-7");
-            var playOnlineButton = document.querySelector("button.btn-secondary.flex-grow-1");
+//------------------------------------------------------------------------Testing Purposes
 
-            if (leaveRoomButton) {
-                leaveRoomButton.click();
-            }
+let previousNumber = null; // Initialize the previousNumber to null
 
-            if (playOnlineButton) {
-                playOnlineButton.click();
-            }
-        }, 1000);
-    }
+function trackAndClickIfDifferent() {
+  // Select the <span> element using its class name
+  const spanElement = document.querySelector('app-count-down span');
+
+  if (spanElement) {
+    // Extract the number from the text content
+    const number = parseInt(spanElement.textContent, 10);
+
+    // Check if parsing was successful
+    if (!isNaN(number)) {
+      
+
+      // Check if the number has changed since the last check
+      if (previousNumber !== null && number !== previousNumber) {
+        spanElement.click();
+      }
+
+      // Update the previousNumber with the current value
+      previousNumber = number;
+    } 
+  }
 }
 
+// Set up an interval to call the function at regular intervals (e.g., every 1 second)
+setInterval(trackAndClickIfDifferent, 1000); // 1000 milliseconds = 1 second
 
 
-var toggleButton = document.createElement('button');
-toggleButton.textContent = 'Off';
-toggleButton.style.position = 'fixed';
-toggleButton.style.bottom = '60px';
-toggleButton.style.right = '20px';
-toggleButton.style.zIndex = '9999';
-toggleButton.style.color = 'white';
-toggleButton.classList.add('btn', 'btn-primary', 'mb-2', 'ng-star-inserted');
-toggleButton.addEventListener('click', toggleButtonClick);
-document.body.appendChild(toggleButton);
 
-// Check if the toggle state is stored in local storage
-var isToggled = localStorage.getItem('isToggled');
+//-------------------------------------------------------------------------------------------
 
-// If the toggle state is not stored, set it to 'false'
-if (!isToggled) {
-    localStorage.setItem('isToggled', 'false');
-} else {
-    // Update the button text and style based on the stored state
-    toggleButton.textContent = isToggled === 'true' ? 'On' : 'Off';
-    toggleButton.style.backgroundColor = isToggled === 'true' ? 'green' : 'red';
-}
+
+    // Append the toggle button to the "Auto Queue" settings
+    autoQueueSettings.appendChild(autoQueueToggleButton);
+
+    // Add event listeners to the tabs to toggle their respective settings
+    autoQueueTab.addEventListener('click', function() {
+        // Hide the depth slider settings
+        depthSliderSettings.style.display = 'none';
+        // Show the auto queue settings
+        autoQueueSettings.style.display = 'block';
+        autoQueueToggleButton.style.display = 'block';
+    });
+
+    depthSliderTab.addEventListener('click', function() {
+        // Hide the auto queue settings
+        autoQueueSettings.style.display = 'none';
+        // Show the depth slider settings
+        depthSliderSettings.style.display = 'block';
+    });
+
+    // Append the tabs and settings to the dropdown content
+    dropdownContent.appendChild(autoQueueTab);
+    dropdownContent.appendChild(autoQueueSettings);
+    dropdownContent.appendChild(depthSliderTab);
+    dropdownContent.appendChild(depthSliderSettings);
+
+    // Append the button and dropdown content to the container
+    dropdownContainer.appendChild(toggleButton);
+    dropdownContainer.appendChild(dropdownContent);
+
+    // Toggle the dropdown when the button is clicked
+    toggleButton.addEventListener('click', function() {
+        if (dropdownContent.style.display === 'none') {
+            dropdownContent.style.display = 'block';
+        } else {
+            dropdownContent.style.display = 'none';
+        }
+    });
+
+    // Append the dropdown container to the document body
+    document.body.appendChild(dropdownContainer);
+})();
+
+
+
 
 //------------------------------------------------
         
